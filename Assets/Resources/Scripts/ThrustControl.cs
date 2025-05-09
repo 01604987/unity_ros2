@@ -1,6 +1,9 @@
 using UnityEngine;
 using Unity.Robotics.ROSTCPConnector;
 using RosMessageTypes.Std;
+using Oculus.Interaction;
+using System.Collections;
+using Unity.XR.CoreUtils;
 
 
 public class ThrustControl : MonoBehaviour
@@ -20,15 +23,47 @@ public class ThrustControl : MonoBehaviour
     private Transform shaftTransform;
     private Vector3 localPos;
 
+    [SerializeField]
+    public Transform rightController_transform;
+
+    public Transform shaft;
+
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         ROSConnection.GetOrCreateInstance().Subscribe<Float32Msg>("/esp/thruster_position", SetPositionRos);
 
         localPos = shaftTransform.localPosition;
+
+
+        // On start of the scene, only track controllers. Determine the location of the controllers.
+        // Spawn a handle on location of the controller.
+        // Disable simultaneous hand and disable controller tracking.
+        // 
+        // On startup move spawn prefab on location of the controller
+        // 
+        StartCoroutine(InitializeWhenControllerActive());
     }
 
+    IEnumerator InitializeWhenControllerActive()
+    {
+        // Wait until any controller is active
+        while ((OVRInput.GetActiveController() & OVRInput.Controller.RTouch) == 0)
+        {
+            yield return null;
+        }
 
+        if(rightController_transform != null)
+        {
+            shaft.position = rightController_transform.position;
+        }
+
+
+        // Optional: disable simultaneous hand tracking
+        //OVRPlugin.SetSimultaneousHandsAndControllersEnabled(false);
+        //Debug.Log("Disabled Multimodal Control");
+    }
 
     // position received in mm
     // need to translate to m for unity
